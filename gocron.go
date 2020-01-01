@@ -65,6 +65,7 @@ type Job struct {
 	fparams  map[string][]interface{} // Map for function and  params of function
 	lock     bool                     // lock the job from running at same time form multiple instances
 	tags     []string                 // allow the user to tag jobs with certain labels
+	uid      string                   // allow the user to add a unique id for jobs
 }
 
 // Locker provides a method to lock jobs from running
@@ -95,6 +96,7 @@ func NewJob(interval uint64) *Job {
 		make(map[string][]interface{}),
 		false,
 		[]string{},
+		"",
 	}
 }
 
@@ -231,6 +233,13 @@ func (j *Job) GetAt() string {
 func (j *Job) Loc(loc *time.Location) *Job {
 	j.loc = loc
 	return j
+}
+
+// Tag allows you to add labels to a job
+// they don't impact the functionality of the job.
+func (j *Job) UID(t string) {
+	j.uid = t
+
 }
 
 // Tag allows you to add labels to a job
