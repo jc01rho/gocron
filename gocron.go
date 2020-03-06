@@ -133,14 +133,24 @@ func (j *Job) run() (result []reflect.Value, err error) {
 
 func callJobFuncWithParams(jobFunc interface{}, params []interface{}) ([]reflect.Value, error) {
 	f := reflect.ValueOf(jobFunc)
-	if len(params) != f.Type().NumIn() {
+	if len(params) != f.Type().NumIn()  && !reflect.TypeOf(jobFunc).IsVariadic() {
 		return nil, errors.New("the number of params is not matched")
 	}
+
 	in := make([]reflect.Value, len(params))
 	for k, param := range params {
+
+
 		in[k] = reflect.ValueOf(param)
+
+
+
 	}
+
 	return f.Call(in), nil
+
+
+
 }
 
 // for given function fn, get the name of function.
