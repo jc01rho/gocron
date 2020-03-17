@@ -53,19 +53,21 @@ const (
 
 // Job struct keeping information about job
 type Job struct {
-	interval uint64                   // pause interval * unit bettween runs
-	jobFunc  string                   // the job jobFunc to run, func[jobFunc]
-	unit     string                   // time units, ,e.g. 'minutes', 'hours'...
-	atTime   time.Duration            // optional time at which this job runs
-	loc      *time.Location           // optional timezone that the atTime is in
-	lastRun  time.Time                // datetime of last run
-	nextRun  time.Time                // datetime of next run
-	startDay time.Weekday             // Specific day of the week to start on
-	funcs    map[string]interface{}   // Map for the function task store
-	fparams  map[string][]interface{} // Map for function and  params of function
-	lock     bool                     // lock the job from running at same time form multiple instances
-	tags     []string                 // allow the user to tag jobs with certain labels
-	uid      string                   // allow the user to add a unique id for jobs
+	interval        uint64                   // pause interval * unit bettween runs
+	jobFunc         string                   // the job jobFunc to run, func[jobFunc]
+	unit            string                   // time units, ,e.g. 'minutes', 'hours'...
+	atTime          time.Duration            // optional time at which this job runs
+	loc             *time.Location           // optional timezone that the atTime is in
+	lastRun         time.Time                // datetime of last run
+	nextRun         time.Time                // datetime of next run
+	startDay        time.Weekday             // Specific day of the week to start on
+	funcs           map[string]interface{}   // Map for the function task store
+	fparams         map[string][]interface{} // Map for function and  params of function
+	lock            bool                     // lock the job from running at same time form multiple instances
+	tags            []string                 // allow the user to tag jobs with certain labels
+	uid             string                   // allow the user to add a unique id for jobs
+	isOnce          bool                     //job setted to only once run
+	isOnceTriggered bool                     //job setted to only once run
 }
 
 // Locker provides a method to lock jobs from running
@@ -97,6 +99,8 @@ func NewJob(interval uint64) *Job {
 		false,
 		[]string{},
 		"",
+		false,
+		false,
 	}
 }
 
@@ -127,29 +131,30 @@ func (j *Job) run() (result []reflect.Value, err error) {
 
 	j.lastRun = time.Now()
 	result, err = callJobFuncWithParams(j.funcs[j.jobFunc], j.fparams[j.jobFunc])
-	j.scheduleNextRun()
+	if !j.isOnce {
+		j.scheduleNextRun()
+	} else {
+		j.isOnceTriggered = true
+
+	}
+
 	return
 }
 
 func callJobFuncWithParams(jobFunc interface{}, params []interface{}) ([]reflect.Value, error) {
 	f := reflect.ValueOf(jobFunc)
-	if len(params) != f.Type().NumIn()  && !reflect.TypeOf(jobFunc).IsVariadic() {
+	if len(params) != f.Type().NumIn() && !reflect.TypeOf(jobFunc).IsVariadic() {
 		return nil, errors.New("the number of params is not matched")
 	}
 
 	in := make([]reflect.Value, len(params))
 	for k, param := range params {
 
-
 		in[k] = reflect.ValueOf(param)
-
-
 
 	}
 
 	return f.Call(in), nil
-
-
 
 }
 
@@ -229,6 +234,11 @@ func (j *Job) At(t string) *Job {
 	}
 	// save atTime start as duration from midnight
 	j.atTime = time.Duration(hour)*time.Hour + time.Duration(min)*time.Minute
+	return j
+}
+
+func (j *Job) Once() *Job {
+	j.isOnce = true
 	return j
 }
 
@@ -554,6 +564,12 @@ func (s *Scheduler) RunPending() {
 		for i := 0; i < n; i++ {
 			runnableJobs[i].run()
 		}
+		for i := 0; i < n; i++ {
+			if runnableJobs[i].isOnce && runnableJobs[i].isOnceTriggered {
+				s.Remove(runnableJobs[i])
+			}
+		}
+
 	}
 }
 
