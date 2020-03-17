@@ -131,8 +131,9 @@ func (j *Job) run() (result []reflect.Value, err error) {
 
 	j.lastRun = time.Now()
 	result, err = callJobFuncWithParams(j.funcs[j.jobFunc], j.fparams[j.jobFunc])
+	j.scheduleNextRun()
 	if !j.isOnce {
-		j.scheduleNextRun()
+
 	} else {
 		j.isOnceTriggered = true
 
