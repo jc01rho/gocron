@@ -567,7 +567,8 @@ func (s *Scheduler) RunPending() {
 		}
 		for i := 0; i < n; i++ {
 			if runnableJobs[i].isOnce && runnableJobs[i].isOnceTriggered {
-				s.Remove(runnableJobs[i])
+				s.RemoveByRef(runnableJobs[i])
+
 			}
 		}
 
