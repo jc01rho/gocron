@@ -604,6 +604,18 @@ func (s *Scheduler) RemoveByRef(j *Job) {
 	})
 }
 
+// RemoveByRef removes specific job j by reference
+func (s *Scheduler) RemoveByTag(tag string) {
+	s.removeByCondition(func(someJob *Job) bool {
+		for _, elm := range someJob.Tags() {
+			if elm == tag {
+				return true
+			}
+		}
+		return false
+	})
+}
+
 func (s *Scheduler) removeByCondition(shouldRemove func(*Job) bool) {
 	i := 0
 
